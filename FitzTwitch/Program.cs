@@ -22,7 +22,7 @@ namespace FitzTwitch
 
         public static async Task Main()
         {
-            var credentials = new ConnectionCredentials("vaindil", "d59ta383b7k6o1ijr4a96x9pieo01p");
+            var credentials = new ConnectionCredentials("vaindil", "4y5k9yo2wgzl4bit09daeqvmw16tnq");
 
             _client = new TwitchClient(credentials, "fitzyhere");
             _client.AddChatCommandIdentifier('!');
