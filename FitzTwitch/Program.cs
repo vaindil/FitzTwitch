@@ -40,8 +40,14 @@ namespace FitzTwitch
 
         private async static void CommandReceived(object sender, OnChatCommandReceivedArgs e)
         {
-            if ((!e.Command.ChatMessage.IsModerator || !_winLossAllowed) && e.Command.ChatMessage.DisplayName != "vaindil")
-                return;
+            if (e.Command.ChatMessage.DisplayName != "vaindil")
+            {
+                if (!e.Command.ChatMessage.IsBroadcaster && !e.Command.ChatMessage.IsModerator)
+                    return;
+
+                if (!_winLossAllowed)
+                    return;
+            }
 
             switch (e.Command.CommandText.ToLowerInvariant())
             {
@@ -81,7 +87,9 @@ namespace FitzTwitch
                 }
             }
 
-            var url = "https://ws.vaindil.xyz/fitzy/";
+            _winLossAllowed = false;
+
+            var url = "http://localhost:5052/fitzy/";
             switch (type)
             {
                 case NumberToUpdate.Wins:
@@ -104,12 +112,15 @@ namespace FitzTwitch
 
             var response = await _httpClient.SendAsync(request);
             if (response.IsSuccessStatusCode)
+            {
                 _client.SendMessage("fitzyhere", $"@{cmd.ChatMessage.DisplayName}: {type.ToString()} updated successfully");
+                _winLossTimer = new Timer(ResetWinLossAllowed, null, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(-1));
+            }
             else
+            {
                 _client.SendMessage("fitzyhere", $"@{cmd.ChatMessage.DisplayName}: {type.ToString()} not updated, something went wrong. You know who to bug.");
-
-            _winLossAllowed = false;
-            _winLossTimer = new Timer(ResetWinLossAllowed, null, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(-1));
+                _winLossAllowed = true;
+            }
         }
 
         private static void ResetWinLossAllowed(object _)
