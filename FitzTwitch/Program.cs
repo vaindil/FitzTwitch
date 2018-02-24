@@ -46,10 +46,7 @@ namespace FitzTwitch
             if (e.Command.ChatMessage.DisplayName != "vaindil")
             {
                 if (!e.Command.ChatMessage.IsBroadcaster && !e.Command.ChatMessage.IsModerator)
-                {
-                    _client.SendMessage("fitzyhere", $"@{e.Command.ChatMessage.DisplayName}: Did I say you could do that?");
                     return;
-                }
 
                 if (!_winLossAllowed)
                     return;
