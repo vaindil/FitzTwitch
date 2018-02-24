@@ -33,6 +33,9 @@ namespace FitzTwitch
             _client.OnReSubscriber += Resub;
             _client.OnGiftedSubscription += Gift;
 
+            _client.OnConnectionError += ConnectionError;
+            _client.OnDisconnected += Disconnected;
+
             _client.Connect();
 
             await Task.Delay(-1);
@@ -67,6 +70,13 @@ namespace FitzTwitch
                 case "t":
                 case "tie":
                     await UpdateText(NumberToUpdate.Draws, e.Command);
+                    break;
+
+                case "clear":
+                case "c":
+                case "reset":
+                case "r":
+                    await ResetAll(e.Command.ChatMessage.DisplayName);
                     break;
             }
         }
@@ -121,6 +131,38 @@ namespace FitzTwitch
                 _client.SendMessage("fitzyhere", $"@{cmd.ChatMessage.DisplayName}: {type.ToString()} not updated, something went wrong. You know who to bug.");
                 _winLossAllowed = true;
             }
+        }
+
+        private static async Task ResetAll(string displayName)
+        {
+            _winLossAllowed = false;
+
+            var request = new HttpRequestMessage(HttpMethod.Put, "http://localhost:5052/fitzy/wins/0");
+            request.Headers.Authorization = new AuthenticationHeaderValue(AUTHHEADER);
+            await _httpClient.SendAsync(request);
+
+            request = new HttpRequestMessage(HttpMethod.Put, "http://localhost:5052/fitzy/losses/0");
+            request.Headers.Authorization = new AuthenticationHeaderValue(AUTHHEADER);
+            await _httpClient.SendAsync(request);
+
+            request = new HttpRequestMessage(HttpMethod.Put, "http://localhost:5052/fitzy/draws/0");
+            request.Headers.Authorization = new AuthenticationHeaderValue(AUTHHEADER);
+            await _httpClient.SendAsync(request);
+
+            _client.SendMessage("fitzyhere", $"@{displayName}: Reset successfully");
+            _winLossTimer = new Timer(ResetWinLossAllowed, null, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(-1));
+        }
+
+        private static void ConnectionError(object sender, OnConnectionErrorArgs e)
+        {
+            Console.Error.WriteLine("Connection error: " + e.Error.Message);
+            Environment.Exit(1);
+        }
+
+        private static void Disconnected(object sender, OnDisconnectedArgs e)
+        {
+            Console.Error.WriteLine("Disconnected");
+            Environment.Exit(1);
         }
 
         private static void ResetWinLossAllowed(object _)
