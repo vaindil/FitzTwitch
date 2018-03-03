@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Microsoft.Extensions.Configuration;
+using System;
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
@@ -12,17 +14,24 @@ namespace FitzTwitch
 {
     public static class Program
     {
+        private static IConfiguration _config;
+
         private static TwitchClient _client;
+
         private static readonly HttpClient _httpClient = new HttpClient();
         private static readonly Regex _verifyNum = new Regex("^[0-9]+$", RegexOptions.Compiled);
-        private const string AUTHHEADER = "ThereOnceWasAManFromPeruWhoDreamtHeWasEatingHisShoeHeWokeWithAFrightInTheMiddleOfTheNightToFindThatHisDreamHadComeTrue";
 
         private static Timer _winLossTimer;
         private static bool _winLossAllowed = true;
 
         public static async Task Main()
         {
-            var credentials = new ConnectionCredentials("vaindil", "0pk1pm4psq7mvz4bunp5ku83c676l2");
+            _config = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("config.json")
+                .Build();
+
+            var credentials = new ConnectionCredentials(_config["Username"], _config["AccessToken"]);
 
             _client = new TwitchClient(credentials, "fitzyhere");
             _client.AddChatCommandIdentifier('!');
@@ -99,7 +108,7 @@ namespace FitzTwitch
 
             _winLossAllowed = false;
 
-            var url = "http://localhost:5052/fitzy/";
+            var url = _config["WinLossApiBaseUrl"];
             switch (type)
             {
                 case NumberToUpdate.Wins:
@@ -118,7 +127,7 @@ namespace FitzTwitch
             url += num;
 
             var request = new HttpRequestMessage(HttpMethod.Put, url);
-            request.Headers.Authorization = new AuthenticationHeaderValue(AUTHHEADER);
+            request.Headers.Authorization = new AuthenticationHeaderValue(_config["WinLossApiKey"]);
 
             var response = await _httpClient.SendAsync(request);
             if (response.IsSuccessStatusCode)
@@ -138,15 +147,15 @@ namespace FitzTwitch
             _winLossAllowed = false;
 
             var request = new HttpRequestMessage(HttpMethod.Put, "http://localhost:5052/fitzy/wins/0");
-            request.Headers.Authorization = new AuthenticationHeaderValue(AUTHHEADER);
+            request.Headers.Authorization = new AuthenticationHeaderValue(_config["WinLossApiKey"]);
             await _httpClient.SendAsync(request);
 
             request = new HttpRequestMessage(HttpMethod.Put, "http://localhost:5052/fitzy/losses/0");
-            request.Headers.Authorization = new AuthenticationHeaderValue(AUTHHEADER);
+            request.Headers.Authorization = new AuthenticationHeaderValue(_config["WinLossApiKey"]);
             await _httpClient.SendAsync(request);
 
             request = new HttpRequestMessage(HttpMethod.Put, "http://localhost:5052/fitzy/draws/0");
-            request.Headers.Authorization = new AuthenticationHeaderValue(AUTHHEADER);
+            request.Headers.Authorization = new AuthenticationHeaderValue(_config["WinLossApiKey"]);
             await _httpClient.SendAsync(request);
 
             _client.SendMessage("fitzyhere", $"@{displayName}: Reset successfully");
