@@ -13,4 +13,10 @@
     <PackageReference Include="TwitchLib" Version="1.6.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="config.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
