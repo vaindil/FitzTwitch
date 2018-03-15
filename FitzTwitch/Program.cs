@@ -147,7 +147,7 @@ namespace FitzTwitch
         {
             if (cmd.ArgumentsAsList.Count != 3)
             {
-                _client.SendMessageAt(cmd.ChatMessage.DisplayName, "Must provide three numbers, no more, no fewer. DansGame");
+                _client.SendMessageAt(cmd.ChatMessage.DisplayName, "Must provide three numbers. No more, no fewer. DansGame");
                 return;
             }
 
