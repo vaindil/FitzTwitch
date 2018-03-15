@@ -5,9 +5,9 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
-using TwitchLib;
-using TwitchLib.Events.Client;
-using TwitchLib.Models.Client;
+using TwitchLib.Client;
+using TwitchLib.Client.Events;
+using TwitchLib.Client.Models;
 
 namespace FitzTwitch
 {
@@ -16,7 +16,7 @@ namespace FitzTwitch
         private static bool _isDev;
         private static IConfiguration _config;
 
-        private static TwitchClient _client;
+        private static TwitchClient _client = new TwitchClient();
 
         private static readonly HttpClient _httpClient = new HttpClient();
 
@@ -33,8 +33,7 @@ namespace FitzTwitch
 
             var credentials = new ConnectionCredentials(_config["Username"], _config["AccessToken"]);
 
-            _client = new TwitchClient(credentials, "fitzyhere");
-            _client.AddChatCommandIdentifier('!');
+            _client.Initialize(credentials, "fitzyhere", '!');
             _client.ChatThrottler = null;
 
             _client.OnChatCommandReceived += CommandReceived;

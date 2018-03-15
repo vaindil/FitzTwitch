@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
-using TwitchLib;
-using TwitchLib.Models.Client;
+using TwitchLib.Client;
+using TwitchLib.Client.Models;
 
 namespace FitzTwitch
 {
