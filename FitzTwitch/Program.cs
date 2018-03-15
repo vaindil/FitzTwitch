@@ -3,7 +3,6 @@ using System;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using TwitchLib;
@@ -14,18 +13,19 @@ namespace FitzTwitch
 {
     public static class Program
     {
+        private static bool _isDev;
         private static IConfiguration _config;
 
         private static TwitchClient _client;
 
         private static readonly HttpClient _httpClient = new HttpClient();
-        private static readonly Regex _verifyNum = new Regex("^[0-9]+$", RegexOptions.Compiled);
 
         private static Timer _winLossTimer;
         private static bool _winLossAllowed = true;
 
         public static async Task Main()
         {
+            _isDev = Environment.GetEnvironmentVariable("FT_DEV") != null;
             _config = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("config.json")
@@ -38,9 +38,6 @@ namespace FitzTwitch
             _client.ChatThrottler = null;
 
             _client.OnChatCommandReceived += CommandReceived;
-            _client.OnNewSubscriber += NewSub;
-            _client.OnReSubscriber += Resub;
-            _client.OnGiftedSubscription += Gift;
 
             _client.OnConnectionError += ConnectionError;
             _client.OnDisconnected += Disconnected;
@@ -52,62 +49,114 @@ namespace FitzTwitch
 
         private async static void CommandReceived(object sender, OnChatCommandReceivedArgs e)
         {
-            if (e.Command.ChatMessage.DisplayName != "vaindil")
-            {
-                if (!e.Command.ChatMessage.IsBroadcaster && !e.Command.ChatMessage.IsModerator)
-                    return;
+            if (!e.Command.ChatMessage.IsBroadcaster && !e.Command.ChatMessage.IsModerator)
+                return;
 
-                if (!_winLossAllowed)
-                    return;
-            }
+            if (!_winLossAllowed && !_isDev)
+                return;
+
+            var wldArg = e.Command.GetWLDArgument();
+            var displayName = e.Command.ChatMessage.DisplayName;
 
             switch (e.Command.CommandText.ToLowerInvariant())
             {
                 case "w":
                 case "win":
-                    await UpdateText(NumberToUpdate.Wins, e.Command);
+                    await UpdateSingleAsync(NumberToUpdate.Wins, wldArg, displayName);
                     break;
 
                 case "l":
                 case "loss":
                 case "lose":
-                    await UpdateText(NumberToUpdate.Losses, e.Command);
+                    await UpdateSingleAsync(NumberToUpdate.Losses, wldArg, displayName);
                     break;
 
                 case "d":
                 case "draw":
                 case "t":
                 case "tie":
-                    await UpdateText(NumberToUpdate.Draws, e.Command);
+                    await UpdateSingleAsync(NumberToUpdate.Draws, wldArg, displayName);
                     break;
 
                 case "clear":
                 case "c":
                 case "reset":
                 case "r":
-                    await ResetAll(e.Command.ChatMessage.DisplayName);
+                    await UpdateAllAsync("0", "0", "0", displayName);
+                    break;
+
+                case "all":
+                case "wld":
+                    await CheckCommandAndUpdateAllAsync(e.Command);
                     break;
             }
         }
 
-        private async static Task UpdateText(NumberToUpdate type, ChatCommand cmd)
+        private async static Task UpdateSingleAsync(NumberToUpdate type, string num, string displayName)
         {
-            var num = "-1";
-            if (cmd.ArgumentsAsList.Count > 0)
+            if (!Utils.VerifyNumber(num))
             {
-                if (_verifyNum.IsMatch(cmd.ArgumentsAsList[0]) && int.TryParse(cmd.ArgumentsAsList[0], out _))
-                {
-                    num = cmd.ArgumentsAsList[0];
-                }
-                else
-                {
-                    _client.SendMessage("fitzyhere", $"@{cmd.ChatMessage.DisplayName}: Specified number is invalid");
-                    return;
-                }
+                _client.SendMessageAt(displayName, "Specified number is invalid");
+                return;
             }
 
             _winLossAllowed = false;
 
+            if (await SendRecordApiCallAsync(type, num))
+            {
+                _client.SendMessageAt(displayName, $"{type.ToString()} updated successfully");
+                _winLossTimer = new Timer(ResetWinLossAllowed, null, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(-1));
+            }
+            else
+            {
+                _client.SendMessageAt(displayName, $"{type.ToString()} not updated, something went wrong. You know who to bug.");
+                _winLossAllowed = true;
+            }
+        }
+
+        private static async Task UpdateAllAsync(string wins, string losses, string draws, string displayName)
+        {
+            if (!Utils.VerifyNumber(wins))
+            {
+                _client.SendMessageAt(displayName, "Wins number invalid");
+                return;
+            }
+
+            if (!Utils.VerifyNumber(losses))
+            {
+                _client.SendMessageAt(displayName, "Losses number invalid");
+                return;
+            }
+
+            if (!Utils.VerifyNumber(draws))
+            {
+                _client.SendMessageAt(displayName, "Draws number invalid");
+                return;
+            }
+
+            _winLossAllowed = false;
+
+            await SendRecordApiCallAsync(NumberToUpdate.Wins, wins);
+            await SendRecordApiCallAsync(NumberToUpdate.Losses, losses);
+            await SendRecordApiCallAsync(NumberToUpdate.Draws, draws);
+
+            _client.SendMessageAt(displayName, $"Set successfully: {wins}-{losses}-{draws}");
+            _winLossTimer = new Timer(ResetWinLossAllowed, null, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(-1));
+        }
+
+        private static async Task CheckCommandAndUpdateAllAsync(ChatCommand cmd)
+        {
+            if (cmd.ArgumentsAsList.Count != 3)
+            {
+                _client.SendMessageAt(cmd.ChatMessage.DisplayName, "Must provide three numbers, no more, no fewer. DansGame");
+                return;
+            }
+
+            await UpdateAllAsync(cmd.ArgumentsAsList[0], cmd.ArgumentsAsList[1], cmd.ArgumentsAsList[2], cmd.ChatMessage.DisplayName);
+        }
+
+        private static async Task<bool> SendRecordApiCallAsync(NumberToUpdate type, string num)
+        {
             var url = _config["WinLossApiBaseUrl"];
             switch (type)
             {
@@ -130,36 +179,7 @@ namespace FitzTwitch
             request.Headers.Authorization = new AuthenticationHeaderValue(_config["WinLossApiKey"]);
 
             var response = await _httpClient.SendAsync(request);
-            if (response.IsSuccessStatusCode)
-            {
-                _client.SendMessage("fitzyhere", $"@{cmd.ChatMessage.DisplayName}: {type.ToString()} updated successfully");
-                _winLossTimer = new Timer(ResetWinLossAllowed, null, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(-1));
-            }
-            else
-            {
-                _client.SendMessage("fitzyhere", $"@{cmd.ChatMessage.DisplayName}: {type.ToString()} not updated, something went wrong. You know who to bug.");
-                _winLossAllowed = true;
-            }
-        }
-
-        private static async Task ResetAll(string displayName)
-        {
-            _winLossAllowed = false;
-
-            var request = new HttpRequestMessage(HttpMethod.Put, "http://localhost:5052/fitzy/wins/0");
-            request.Headers.Authorization = new AuthenticationHeaderValue(_config["WinLossApiKey"]);
-            await _httpClient.SendAsync(request);
-
-            request = new HttpRequestMessage(HttpMethod.Put, "http://localhost:5052/fitzy/losses/0");
-            request.Headers.Authorization = new AuthenticationHeaderValue(_config["WinLossApiKey"]);
-            await _httpClient.SendAsync(request);
-
-            request = new HttpRequestMessage(HttpMethod.Put, "http://localhost:5052/fitzy/draws/0");
-            request.Headers.Authorization = new AuthenticationHeaderValue(_config["WinLossApiKey"]);
-            await _httpClient.SendAsync(request);
-
-            _client.SendMessage("fitzyhere", $"@{displayName}: Reset successfully");
-            _winLossTimer = new Timer(ResetWinLossAllowed, null, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(-1));
+            return response.IsSuccessStatusCode;
         }
 
         private static void ConnectionError(object sender, OnConnectionErrorArgs e)
@@ -179,25 +199,6 @@ namespace FitzTwitch
             _winLossAllowed = true;
 
             _winLossTimer?.Dispose();
-        }
-
-        private static void NewSub(object sender, OnNewSubscriberArgs e)
-        {
-            _client.SendMessage("fitzyhere", $"@{e.Subscriber.DisplayName} Thanks for the new sub! " +
-                "fitzHey fitzHey Welcome to the Super Secret Sombra Squad! fitzHYPE fitzHYPE fitzBEANHERE fitzBEANHERE");
-        }
-
-        private static void Resub(object sender, OnReSubscriberArgs e)
-        {
-            _client.SendMessage("fitzyhere", $"fitzDab fitzBEANHERE fitzHYPE Thank you @{e.ReSubscriber.DisplayName} " +
-                $"for your {e.ReSubscriber.Months} months of support! fitzHYPE fitzBEANHERE fitzDab");
-        }
-
-        private static void Gift(object sender, OnGiftedSubscriptionArgs e)
-        {
-            _client.SendMessage("fitzyhere", $"Thank you @{e.GiftedSubscription.DisplayName} for the gift! " +
-                $"@{e.GiftedSubscription.MsgParamRecipientDisplayName} fitzHey fitzHey " +
-                "Welcome to the Super Secret Sombra Squad! fitzHYPE fitzHYPE fitzBEANHERE fitzBEANHERE");
         }
 
         private enum NumberToUpdate
