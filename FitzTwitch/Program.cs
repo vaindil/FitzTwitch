@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using TwitchLib.Client;
 using TwitchLib.Client.Events;
+using TwitchLib.Client.Extensions;
 using TwitchLib.Client.Models;
 
 namespace FitzTwitch
@@ -37,6 +38,7 @@ namespace FitzTwitch
             _client.ChatThrottler = null;
 
             _client.OnChatCommandReceived += CommandReceived;
+            _client.OnMessageReceived += SpamCatcher;
 
             _client.OnConnectionError += ConnectionError;
             _client.OnDisconnected += Disconnected;
@@ -44,6 +46,12 @@ namespace FitzTwitch
             _client.Connect();
 
             await Task.Delay(-1);
+        }
+
+        private static void SpamCatcher(object sender, OnMessageReceivedArgs e)
+        {
+            if (e.ChatMessage.Message.IndexOf("n i g g e r", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                _client.BanUser(e.ChatMessage.Channel, e.ChatMessage.Username, "Racist spam");
         }
 
         private async static void CommandReceived(object sender, OnChatCommandReceivedArgs e)
