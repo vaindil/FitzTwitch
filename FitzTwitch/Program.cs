@@ -113,12 +113,13 @@ namespace FitzTwitch
                 return;
             }
 
-            _winLossAllowed = false;
+            if (num == "-1")
+                _winLossAllowed = false;
 
             if (await SendRecordApiCallAsync(type, num))
             {
                 _client.SendMessageAt(displayName, "Updated successfully");
-                _winLossTimer = new Timer(ResetWinLossAllowed, null, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(-1));
+                _winLossTimer = new Timer(ResetWinLossAllowed, null, TimeSpan.FromSeconds(5), TimeSpan.FromMilliseconds(-1));
             }
             else
             {
