@@ -17,7 +17,7 @@ namespace FitzTwitch
         private static bool _isDev;
         private static IConfiguration _config;
 
-        private static TwitchClient _client = new TwitchClient();
+        private static readonly TwitchClient _client = new TwitchClient();
 
         private static readonly HttpClient _httpClient = new HttpClient();
 
@@ -69,19 +69,25 @@ namespace FitzTwitch
             {
                 case "w":
                 case "win":
+                case "wins":
                     await UpdateSingleAsync(NumberToUpdate.Wins, wldArg, displayName);
                     break;
 
                 case "l":
                 case "loss":
+                case "losses":
                 case "lose":
+                case "k":
+                case "kill":
+                case "kills":
                     await UpdateSingleAsync(NumberToUpdate.Losses, wldArg, displayName);
                     break;
 
                 case "d":
                 case "draw":
-                case "t":
-                case "tie":
+                case "draws":
+                case "death":
+                case "deaths":
                     await UpdateSingleAsync(NumberToUpdate.Draws, wldArg, displayName);
                     break;
 
@@ -111,12 +117,12 @@ namespace FitzTwitch
 
             if (await SendRecordApiCallAsync(type, num))
             {
-                _client.SendMessageAt(displayName, $"{type.ToString()} updated successfully");
+                _client.SendMessageAt(displayName, "Updated successfully");
                 _winLossTimer = new Timer(ResetWinLossAllowed, null, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(-1));
             }
             else
             {
-                _client.SendMessageAt(displayName, $"{type.ToString()} not updated, something went wrong. You know who to bug.");
+                _client.SendMessageAt(displayName, "Not updated, something went wrong. You know who to bug.");
                 _winLossAllowed = true;
             }
         }
