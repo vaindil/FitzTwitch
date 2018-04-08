@@ -95,7 +95,7 @@ namespace FitzTwitch
                 case "c":
                 case "reset":
                 case "r":
-                    await UpdateAllAsync("0", "0", "0", displayName);
+                    await SendRecordApiCallAsync(NumberToUpdate.Clear, "");
                     break;
 
                 case "all":
@@ -185,9 +185,14 @@ namespace FitzTwitch
                 case NumberToUpdate.Draws:
                     url += "draws/";
                     break;
+
+                case NumberToUpdate.Clear:
+                    url += "clear";
+                    break;
             }
 
-            url += num;
+            if (type != NumberToUpdate.Clear)
+                url += num;
 
             var request = new HttpRequestMessage(HttpMethod.Put, url);
             request.Headers.Authorization = new AuthenticationHeaderValue(_config["WinLossApiKey"]);
@@ -219,7 +224,8 @@ namespace FitzTwitch
         {
             Wins,
             Losses,
-            Draws
+            Draws,
+            Clear
         }
     }
 }
