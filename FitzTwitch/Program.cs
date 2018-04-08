@@ -95,7 +95,7 @@ namespace FitzTwitch
                 case "c":
                 case "reset":
                 case "r":
-                    await SendRecordApiCallAsync(NumberToUpdate.Clear, "");
+                    await UpdateSingleAsync(NumberToUpdate.Clear, "0", displayName);
                     break;
 
                 case "all":
