@@ -56,14 +56,21 @@ namespace FitzTwitch
 
         private async static void CommandReceived(object sender, OnChatCommandReceivedArgs e)
         {
+            var displayName = e.Command.ChatMessage.DisplayName;
+
             if (!e.Command.ChatMessage.IsBroadcaster && !e.Command.ChatMessage.IsModerator)
                 return;
+
+            if (string.Equals(e.Command.CommandText, "refresh", StringComparison.InvariantCultureIgnoreCase))
+            {
+                await SendRefreshCallAsync(displayName);
+                return;
+            }
 
             if (!_winLossAllowed && !_isDev)
                 return;
 
             var wldArg = e.Command.GetWLDArgument();
-            var displayName = e.Command.ChatMessage.DisplayName;
 
             switch (e.Command.CommandText.ToLowerInvariant())
             {
@@ -199,6 +206,18 @@ namespace FitzTwitch
 
             var response = await _httpClient.SendAsync(request);
             return response.IsSuccessStatusCode;
+        }
+
+        private static async Task SendRefreshCallAsync(string displayName)
+        {
+            var request = new HttpRequestMessage(HttpMethod.Post, _config["WinLossApiBaseUrl"] + "refresh");
+            request.Headers.Authorization = new AuthenticationHeaderValue(_config["WinLossApiKey"]);
+            var response = await _httpClient.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+                _client.SendMessageAt(displayName, "Refreshed successfully.");
+            else
+                _client.SendMessageAt(displayName, "Something went wrong. Blame that one guy.");
         }
 
         private static void ConnectionError(object sender, OnConnectionErrorArgs e)
