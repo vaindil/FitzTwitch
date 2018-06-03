@@ -1,8 +1,11 @@
 ﻿using Microsoft.Extensions.Configuration;
 using System;
+using System.Collections.Concurrent;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using TwitchLib.Client;
@@ -23,6 +26,9 @@ namespace FitzTwitch
 
         private static Timer _winLossTimer;
         private static bool _winLossAllowed = true;
+
+        private static int _numPollAnswers;
+        private static readonly ConcurrentBag<int> _pollResults = new ConcurrentBag<int>();
 
         public static async Task Main()
         {
@@ -57,6 +63,12 @@ namespace FitzTwitch
         private async static void CommandReceived(object sender, OnChatCommandReceivedArgs e)
         {
             var displayName = e.Command.ChatMessage.DisplayName;
+
+            if (_numPollAnswers != 0 && int.TryParse(e.Command.ChatMessage.Message, out var num) && num >= 1 && num <= _numPollAnswers)
+            {
+                _pollResults.Add(num);
+                return;
+            }
 
             if (!e.Command.ChatMessage.IsBroadcaster && !e.Command.ChatMessage.IsModerator)
                 return;
@@ -109,6 +121,20 @@ namespace FitzTwitch
                 case "wld":
                     await CheckCommandAndUpdateAllAsync(e.Command);
                     break;
+
+                case "startpoll":
+                case "pollstart":
+                    StartPoll(e.Command);
+                    break;
+
+                case "endpoll":
+                case "pollend":
+                    EndPoll();
+                    break;
+
+                case "poll":
+                    TogglePoll(e.Command);
+                    break;
             }
         }
 
@@ -120,8 +146,7 @@ namespace FitzTwitch
                 return;
             }
 
-            if (num == "-1")
-                _winLossAllowed = false;
+            _winLossAllowed &= num != "-1";
 
             if (await SendRecordApiCallAsync(type, num))
             {
@@ -218,6 +243,70 @@ namespace FitzTwitch
                 _client.SendMessageAt(displayName, "Refreshed successfully.");
             else
                 _client.SendMessageAt(displayName, "Something went wrong. Blame that one guy.");
+        }
+
+        private static void TogglePoll(ChatCommand cmd)
+        {
+            if (_numPollAnswers != 0)
+                EndPoll();
+            else
+                StartPoll(cmd);
+        }
+
+        private static void StartPoll(ChatCommand cmd)
+        {
+            var displayName = cmd.ChatMessage.DisplayName;
+
+            if (_numPollAnswers != 0)
+            {
+                _client.SendMessageAt(displayName, "You can't start a new poll when one is already open, you nerd.");
+                return;
+            }
+
+            if (cmd.ArgumentsAsList.Count < 1)
+            {
+                _client.SendMessageAt(displayName, "You must provide the number of possible answers, you nerd.");
+                return;
+            }
+
+            if (!int.TryParse(cmd.ChatMessage.Message, out var numOfAnswers))
+            {
+                _client.SendMessageAt(displayName, "You didn't provide a valid number of possible answers, you nerd.");
+                return;
+            }
+
+            if (numOfAnswers < 2)
+            {
+                _client.SendMessageAt(displayName, "Poll must have two or more possible answers, you nerd.");
+                return;
+            }
+
+            _numPollAnswers = numOfAnswers;
+            _pollResults.Clear();
+
+            _client.SendMessageAt(displayName, "Poll is now open, you nerd.");
+        }
+
+        private static void EndPoll()
+        {
+            var numAnswers = _numPollAnswers;
+            _numPollAnswers = 0;
+
+            var sb = new StringBuilder("Results: ");
+
+            for (var i = 1; i <= numAnswers; i++)
+            {
+                if (i != 1)
+                    sb.Append(" | ");
+
+                sb.Append(i);
+                sb.Append(": ");
+                sb.Append(_pollResults.Count(x => x == i));
+            }
+
+            _client.SendMessage("fitzyhere", sb.ToString());
+
+            _pollResults.Clear();
         }
 
         private static void ConnectionError(object sender, OnConnectionErrorArgs e)
