@@ -131,10 +131,6 @@ namespace FitzTwitch
                 case "pollend":
                     EndPoll(e.Command.ChatMessage.DisplayName);
                     break;
-
-                case "poll":
-                    TogglePoll(e.Command);
-                    break;
             }
         }
 
@@ -243,14 +239,6 @@ namespace FitzTwitch
                 _client.SendMessageAt(displayName, "Refreshed successfully.");
             else
                 _client.SendMessageAt(displayName, "Something went wrong. Blame that one guy.");
-        }
-
-        private static void TogglePoll(ChatCommand cmd)
-        {
-            if (_numPollAnswers != 0)
-                EndPoll(cmd.ChatMessage.DisplayName);
-            else
-                StartPoll(cmd);
         }
 
         private static void StartPoll(ChatCommand cmd)
