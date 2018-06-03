@@ -129,7 +129,7 @@ namespace FitzTwitch
 
                 case "endpoll":
                 case "pollend":
-                    EndPoll();
+                    EndPoll(e.Command.ChatMessage.DisplayName);
                     break;
 
                 case "poll":
@@ -248,7 +248,7 @@ namespace FitzTwitch
         private static void TogglePoll(ChatCommand cmd)
         {
             if (_numPollAnswers != 0)
-                EndPoll();
+                EndPoll(cmd.ChatMessage.DisplayName);
             else
                 StartPoll(cmd);
         }
@@ -287,8 +287,14 @@ namespace FitzTwitch
             _client.SendMessageAt(displayName, "Poll is now open, you nerd.");
         }
 
-        private static void EndPoll()
+        private static void EndPoll(string displayName)
         {
+            if (_numPollAnswers == 0)
+            {
+                _client.SendMessageAt(displayName, "You can't end a nonexistent poll, you nerd.");
+                return;
+            }
+
             var numAnswers = _numPollAnswers;
             _numPollAnswers = 0;
 
