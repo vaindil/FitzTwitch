@@ -257,7 +257,7 @@ namespace FitzTwitch
                 return;
             }
 
-            if (!int.TryParse(cmd.ChatMessage.Message, out var numOfAnswers))
+            if (!int.TryParse(cmd.ArgumentsAsList[0], out var numOfAnswers))
             {
                 _client.SendMessageAt(displayName, "You didn't provide a valid number of possible answers, you nerd.");
                 return;
