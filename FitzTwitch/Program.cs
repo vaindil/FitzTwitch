@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -28,7 +29,7 @@ namespace FitzTwitch
         private static bool _winLossAllowed = true;
 
         private static int _numPollAnswers;
-        private static readonly ConcurrentBag<int> _pollResults = new ConcurrentBag<int>();
+        private static readonly ConcurrentBag<PollAnswer> _pollResults = new ConcurrentBag<PollAnswer>();
 
         public static async Task Main()
         {
@@ -45,6 +46,7 @@ namespace FitzTwitch
 
             _client.OnChatCommandReceived += CommandReceived;
             _client.OnMessageReceived += SpamCatcher;
+            _client.OnMessageReceived += PollCounter;
 
             _client.OnConnectionError += ConnectionError;
             _client.OnDisconnected += Disconnected;
@@ -60,15 +62,17 @@ namespace FitzTwitch
                 _client.BanUser(e.ChatMessage.Channel, e.ChatMessage.Username, "Racist spam");
         }
 
+        private static void PollCounter(object sender, OnMessageReceivedArgs e)
+        {
+            if (_numPollAnswers != 0 && int.TryParse(e.ChatMessage.Message, out var ans) && ans >= 1 && ans <= _numPollAnswers)
+            {
+                _pollResults.Add(new PollAnswer(e.ChatMessage.UserId, ans));
+            }
+        }
+
         private async static void CommandReceived(object sender, OnChatCommandReceivedArgs e)
         {
             var displayName = e.Command.ChatMessage.DisplayName;
-
-            if (_numPollAnswers != 0 && int.TryParse(e.Command.ChatMessage.Message, out var num) && num >= 1 && num <= _numPollAnswers)
-            {
-                _pollResults.Add(num);
-                return;
-            }
 
             if (!e.Command.ChatMessage.IsBroadcaster && !e.Command.ChatMessage.IsModerator)
                 return;
@@ -286,7 +290,19 @@ namespace FitzTwitch
             var numAnswers = _numPollAnswers;
             _numPollAnswers = 0;
 
+            var userIds = new List<string>();
+            var results = new List<int>();
+
             var sb = new StringBuilder("Results: ");
+
+            while (_pollResults.TryTake(out var result))
+            {
+                if (userIds.Contains(result.UserId))
+                    continue;
+
+                userIds.Add(result.UserId);
+                results.Add(result.Answer);
+            }
 
             for (var i = 1; i <= numAnswers; i++)
             {
@@ -295,7 +311,7 @@ namespace FitzTwitch
 
                 sb.Append(i);
                 sb.Append(": ");
-                sb.Append(_pollResults.Count(x => x == i));
+                sb.Append(results.Count(x => x == i));
             }
 
             _client.SendMessage("fitzyhere", sb.ToString());
@@ -328,6 +344,19 @@ namespace FitzTwitch
             Losses,
             Draws,
             Clear
+        }
+
+        private class PollAnswer
+        {
+            public PollAnswer(string userId, int answer)
+            {
+                UserId = userId;
+                Answer = answer;
+            }
+
+            public string UserId { get; set; }
+
+            public int Answer { get; set; }
         }
     }
 }
