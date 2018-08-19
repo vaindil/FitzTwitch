@@ -1,6 +1,9 @@
 ﻿{
   "Username": "",
+  "UserId": "",
   "AccessToken": "",
+  "ClientId": "",
   "WinLossApiKey": "",
-  "WinLossApiBaseUrl": ""
+  "WinLossApiBaseUrl": "",
+  "ActionsApiBaseUrl": ""
 }

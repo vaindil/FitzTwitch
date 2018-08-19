@@ -9,6 +9,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using TwitchLib.Api;
 using TwitchLib.Client;
 using TwitchLib.Client.Events;
 using TwitchLib.Client.Extensions;
@@ -16,22 +17,29 @@ using TwitchLib.Client.Models;
 
 namespace FitzTwitch
 {
-    public static class Program
+    public class Program
     {
-        private static bool _isDev;
-        private static IConfiguration _config;
+        public static async Task Main() => await new Program().RealMainAsync();
 
-        private static readonly TwitchClient _client = new TwitchClient();
+        private bool _isDev;
+        private IConfiguration _config;
 
-        private static readonly HttpClient _httpClient = new HttpClient();
+        private PubSubHandler _pubSubHandler;
 
-        private static Timer _winLossTimer;
-        private static bool _winLossAllowed = true;
+        private TwitchClient _client = new TwitchClient();
+        private TwitchAPI _api = new TwitchAPI();
 
-        private static int _numPollAnswers;
-        private static readonly ConcurrentBag<PollAnswer> _pollResults = new ConcurrentBag<PollAnswer>();
+        private HttpClient _httpClient = new HttpClient();
 
-        public static async Task Main()
+        private Timer _winLossTimer;
+        private bool _winLossAllowed = true;
+
+        private int _numPollAnswers;
+        private readonly ConcurrentBag<PollAnswer> _pollResults = new ConcurrentBag<PollAnswer>();
+
+        public const string _channelId = "23155607";
+
+        public async Task RealMainAsync()
         {
             _isDev = Environment.GetEnvironmentVariable("FT_DEV") != null;
             _config = new ConfigurationBuilder()
@@ -39,7 +47,12 @@ namespace FitzTwitch
                 .AddJsonFile("config.json")
                 .Build();
 
+            _pubSubHandler = new PubSubHandler(_config, _client, _api, _httpClient);
+
             var credentials = new ConnectionCredentials(_config["Username"], _config["AccessToken"]);
+
+            _api.Settings.ClientId = _config["ClientId"];
+            _api.Settings.AccessToken = _config["AccessToken"];
 
             _client.Initialize(credentials, "fitzyhere", '!');
             _client.ChatThrottler = null;
@@ -56,13 +69,13 @@ namespace FitzTwitch
             await Task.Delay(-1);
         }
 
-        private static void SpamCatcher(object sender, OnMessageReceivedArgs e)
+        private void SpamCatcher(object sender, OnMessageReceivedArgs e)
         {
             if (e.ChatMessage.Message.IndexOf("n i g g e r", StringComparison.InvariantCultureIgnoreCase) >= 0)
                 _client.BanUser(e.ChatMessage.Channel, e.ChatMessage.Username, "Racist spam");
         }
 
-        private static void PollCounter(object sender, OnMessageReceivedArgs e)
+        private void PollCounter(object sender, OnMessageReceivedArgs e)
         {
             if (_numPollAnswers != 0 && int.TryParse(e.ChatMessage.Message, out var ans) && ans >= 1 && ans <= _numPollAnswers)
             {
@@ -70,7 +83,7 @@ namespace FitzTwitch
             }
         }
 
-        private async static void CommandReceived(object sender, OnChatCommandReceivedArgs e)
+        private async void CommandReceived(object sender, OnChatCommandReceivedArgs e)
         {
             var displayName = e.Command.ChatMessage.DisplayName;
 
@@ -138,7 +151,7 @@ namespace FitzTwitch
             }
         }
 
-        private async static Task UpdateSingleAsync(NumberToUpdate type, string num, string displayName)
+        private async Task UpdateSingleAsync(NumberToUpdate type, string num, string displayName)
         {
             if (!Utils.VerifyNumber(num))
             {
@@ -160,7 +173,7 @@ namespace FitzTwitch
             }
         }
 
-        private static async Task UpdateAllAsync(string wins, string losses, string draws, string displayName)
+        private async Task UpdateAllAsync(string wins, string losses, string draws, string displayName)
         {
             if (!Utils.VerifyNumber(wins))
             {
@@ -190,7 +203,7 @@ namespace FitzTwitch
             _winLossTimer = new Timer(ResetWinLossAllowed, null, TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(-1));
         }
 
-        private static async Task CheckCommandAndUpdateAllAsync(ChatCommand cmd)
+        private async Task CheckCommandAndUpdateAllAsync(ChatCommand cmd)
         {
             if (cmd.ArgumentsAsList.Count != 3)
             {
@@ -201,7 +214,7 @@ namespace FitzTwitch
             await UpdateAllAsync(cmd.ArgumentsAsList[0], cmd.ArgumentsAsList[1], cmd.ArgumentsAsList[2], cmd.ChatMessage.DisplayName);
         }
 
-        private static async Task<bool> SendRecordApiCallAsync(NumberToUpdate type, string num)
+        private async Task<bool> SendRecordApiCallAsync(NumberToUpdate type, string num)
         {
             var url = _config["WinLossApiBaseUrl"];
             switch (type)
@@ -227,16 +240,16 @@ namespace FitzTwitch
                 url += num;
 
             var request = new HttpRequestMessage(HttpMethod.Put, url);
-            request.Headers.Authorization = new AuthenticationHeaderValue(_config["WinLossApiKey"]);
+            request.Headers.Authorization = new AuthenticationHeaderValue(_config["FitzyApiKey"]);
 
             var response = await _httpClient.SendAsync(request);
             return response.IsSuccessStatusCode;
         }
 
-        private static async Task SendRefreshCallAsync(string displayName)
+        private async Task SendRefreshCallAsync(string displayName)
         {
             var request = new HttpRequestMessage(HttpMethod.Post, _config["WinLossApiBaseUrl"] + "refresh");
-            request.Headers.Authorization = new AuthenticationHeaderValue(_config["WinLossApiKey"]);
+            request.Headers.Authorization = new AuthenticationHeaderValue(_config["FitzyApiKey"]);
             var response = await _httpClient.SendAsync(request);
 
             if (response.IsSuccessStatusCode)
@@ -245,7 +258,7 @@ namespace FitzTwitch
                 _client.SendMessageAt(displayName, "Something went wrong. Blame that one guy.");
         }
 
-        private static void StartPoll(ChatCommand cmd)
+        private void StartPoll(ChatCommand cmd)
         {
             var displayName = cmd.ChatMessage.DisplayName;
 
@@ -279,7 +292,7 @@ namespace FitzTwitch
             _client.SendMessageAt(displayName, "Poll is now open, you nerd.");
         }
 
-        private static void EndPoll(string displayName)
+        private void EndPoll(string displayName)
         {
             if (_numPollAnswers == 0)
             {
@@ -319,19 +332,19 @@ namespace FitzTwitch
             _pollResults.Clear();
         }
 
-        private static void ConnectionError(object sender, OnConnectionErrorArgs e)
+        private void ConnectionError(object sender, OnConnectionErrorArgs e)
         {
             Console.Error.WriteLine("Connection error: " + e.Error.Message);
             Environment.Exit(1);
         }
 
-        private static void Disconnected(object sender, OnDisconnectedArgs e)
+        private void Disconnected(object sender, OnDisconnectedArgs e)
         {
             Console.Error.WriteLine("Disconnected");
             Environment.Exit(1);
         }
 
-        private static void ResetWinLossAllowed(object _)
+        private void ResetWinLossAllowed(object _)
         {
             _winLossAllowed = true;
 
