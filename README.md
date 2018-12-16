@@ -1,1 +1,1 @@
-This code is absolutely atrocious, I know, I'm gonna clean it up soon™.
+I'll write a readme at some point, open an issue if you actually intend to use this repo and I can do it right away.
