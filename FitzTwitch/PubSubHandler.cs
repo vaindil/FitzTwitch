@@ -7,7 +7,6 @@ using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using TwitchLib.Api;
 using TwitchLib.Client;
-using TwitchLib.Client.Events;
 using TwitchLib.PubSub;
 using TwitchLib.PubSub.Events;
 
@@ -17,7 +16,6 @@ namespace FitzTwitch
     {
         private readonly IConfiguration _config;
 
-        private readonly TwitchClient _client;
         private readonly TwitchAPI _api;
         private readonly TwitchPubSub _pubSub;
 
@@ -27,7 +25,6 @@ namespace FitzTwitch
         {
             _config = config;
 
-            _client = client;
             _api = api;
             _pubSub = new TwitchPubSub();
 
@@ -41,6 +38,7 @@ namespace FitzTwitch
             _pubSub.OnStreamDown += StreamDown;
             _pubSub.OnBan += OnBan;
             _pubSub.OnTimeout += OnTimeout;
+            _pubSub.OnMessageDeleted += OnMessageDeleted;
             _pubSub.OnUnban += OnUnban;
             _pubSub.OnUntimeout += OnUntimeout;
 
@@ -108,7 +106,7 @@ namespace FitzTwitch
 
         private async void OnUnban(object sender, OnUnbanArgs e)
         {
-            var unbanned = await _api.Users.helix.GetUsersAsync(ids: new List<string> { e.UnbannedUserId });
+            var unbanned = await _api.Helix.Users.GetUsersAsync(ids: new List<string> { e.UnbannedUserId });
             await SendActionAsync(new ActionTaken
             {
                 ModUsername = e.UnbannedBy,
@@ -121,12 +119,24 @@ namespace FitzTwitch
 
         private async void OnUntimeout(object sender, OnUntimeoutArgs e)
         {
-            var untimedout = await _api.Users.helix.GetUsersAsync(ids: new List<string> { e.UntimeoutedUserId });
+            var untimedout = await _api.Helix.Users.GetUsersAsync(ids: new List<string> { e.UntimeoutedUserId });
             await SendActionAsync(new ActionTaken
             {
                 ModUsername = e.UntimeoutedBy,
                 UserUsername = untimedout.Users[0].Login,
                 Action = "untimeout",
+                Duration = 0,
+                Reason = "(none)"
+            });
+        }
+
+        private async void OnMessageDeleted(object sender, OnMessageDeletedArgs e)
+        {
+            await SendActionAsync(new ActionTaken
+            {
+                ModUsername = e.DeletedBy,
+                UserUsername = e.TargetUser,
+                Action = "messagedeleted",
                 Duration = 0,
                 Reason = "(none)"
             });

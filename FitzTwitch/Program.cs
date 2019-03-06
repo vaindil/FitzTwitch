@@ -14,6 +14,7 @@ using TwitchLib.Client;
 using TwitchLib.Client.Events;
 using TwitchLib.Client.Extensions;
 using TwitchLib.Client.Models;
+using TwitchLib.Communication.Events;
 
 namespace FitzTwitch
 {
@@ -24,12 +25,14 @@ namespace FitzTwitch
         private bool _isDev;
         private IConfiguration _config;
 
+#pragma warning disable IDE0052 // Remove unread private members
         private PubSubHandler _pubSubHandler;
+#pragma warning restore IDE0052 // Remove unread private members
 
-        private TwitchClient _client = new TwitchClient();
-        private TwitchAPI _api = new TwitchAPI();
+        private readonly TwitchClient _client = new TwitchClient();
+        private readonly TwitchAPI _api = new TwitchAPI();
 
-        private HttpClient _httpClient = new HttpClient();
+        private readonly HttpClient _httpClient = new HttpClient();
 
         private Timer _winLossTimer;
         private bool _winLossAllowed = true;
@@ -47,15 +50,14 @@ namespace FitzTwitch
                 .AddJsonFile("config.json")
                 .Build();
 
-            _pubSubHandler = new PubSubHandler(_config, _client, _api, _httpClient);
-
             var credentials = new ConnectionCredentials(_config["Username"], _config["AccessToken"]);
+
+            _pubSubHandler = new PubSubHandler(_config, _client, _api, _httpClient);
 
             _api.Settings.ClientId = _config["ClientId"];
             _api.Settings.AccessToken = _config["AccessToken"];
 
             _client.Initialize(credentials, "fitzyhere", '!');
-            _client.ChatThrottler = null;
 
             _client.OnChatCommandReceived += CommandReceived;
             _client.OnMessageReceived += SpamCatcher;
@@ -338,7 +340,7 @@ namespace FitzTwitch
             Environment.Exit(1);
         }
 
-        private void Disconnected(object sender, OnDisconnectedArgs e)
+        private void Disconnected(object sender, OnDisconnectedEventArgs e)
         {
             Console.Error.WriteLine("Disconnected");
             Environment.Exit(1);
