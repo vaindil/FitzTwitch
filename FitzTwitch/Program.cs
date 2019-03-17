@@ -40,6 +40,8 @@ namespace FitzTwitch
         private int _numPollAnswers;
         private readonly ConcurrentBag<PollAnswer> _pollResults = new ConcurrentBag<PollAnswer>();
 
+        private readonly Random _random = new Random();
+
         public const string _channelId = "23155607";
 
         public async Task RealMainAsync()
@@ -88,6 +90,12 @@ namespace FitzTwitch
         private async void CommandReceived(object sender, OnChatCommandReceivedArgs e)
         {
             var displayName = e.Command.ChatMessage.DisplayName;
+
+            if (string.Equals(e.Command.CommandText, "gin", StringComparison.OrdinalIgnoreCase))
+            {
+                GintokiCommand(e.Command.ArgumentsAsString);
+                return;
+            }
 
             if (!e.Command.ChatMessage.IsBroadcaster && !e.Command.ChatMessage.IsModerator)
                 return;
@@ -246,6 +254,33 @@ namespace FitzTwitch
 
             var response = await _httpClient.SendAsync(request);
             return response.IsSuccessStatusCode;
+        }
+
+        private void GintokiCommand(string message)
+        {
+            var outMsg = new StringBuilder();
+            foreach (var l in message)
+            {
+                if (!char.IsLetter(l))
+                {
+                    outMsg.Append(l);
+                    continue;
+                }
+
+                var final = l;
+
+                if (_random.Next(0, 10) >= 6)
+                {
+                    if (char.IsUpper(l))
+                        final = char.ToLower(l);
+                    else
+                        final = char.ToUpper(l);
+                }
+
+                outMsg.Append(final);
+            }
+
+            _client.SendMessage("fitzyhere", outMsg.ToString());
         }
 
         private async Task SendRefreshCallAsync(string displayName)
