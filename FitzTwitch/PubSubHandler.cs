@@ -66,6 +66,11 @@ namespace FitzTwitch
 
         private async void StreamUp(object sender, OnStreamUpArgs e)
         {
+            var prevColor = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"{GetCurrentTimeString()}: Stream online");
+            Console.ForegroundColor = prevColor;
+
             var request = new HttpRequestMessage(HttpMethod.Put, _config["ActionsApiBaseUrl"] + "live");
             request.Headers.Authorization = new AuthenticationHeaderValue(_config["FitzyApiKey"]);
 
@@ -74,6 +79,11 @@ namespace FitzTwitch
 
         private async void StreamDown(object sender, OnStreamDownArgs e)
         {
+            var prevColor = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"{GetCurrentTimeString()}: Stream offline");
+            Console.ForegroundColor = prevColor;
+
             var request = new HttpRequestMessage(HttpMethod.Put, _config["ActionsApiBaseUrl"] + "offline");
             request.Headers.Authorization = new AuthenticationHeaderValue(_config["FitzyApiKey"]);
 
@@ -155,6 +165,11 @@ namespace FitzTwitch
             request.Headers.Authorization = new AuthenticationHeaderValue(_config["FitzyApiKey"]);
 
             await _httpClient.SendAsync(request);
+        }
+
+        private string GetCurrentTimeString()
+        {
+            return DateTimeOffset.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff");
         }
 
         private class Moderator
