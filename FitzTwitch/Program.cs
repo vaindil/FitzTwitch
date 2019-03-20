@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using TwitchLib.Api;
+using TwitchLib.Api.Core.Enums;
 using TwitchLib.Client;
 using TwitchLib.Client.Events;
 using TwitchLib.Client.Extensions;
@@ -54,7 +55,7 @@ namespace FitzTwitch
 
             var credentials = new ConnectionCredentials(_config["Username"], _config["AccessToken"]);
 
-            _pubSubHandler = new PubSubHandler(_config, _client, _api, _httpClient);
+            _pubSubHandler = new PubSubHandler(_config, _api, _httpClient);
 
             _api.Settings.ClientId = _config["ClientId"];
             _api.Settings.AccessToken = _config["AccessToken"];
@@ -69,6 +70,9 @@ namespace FitzTwitch
             _client.OnDisconnected += Disconnected;
 
             _client.Connect();
+
+            await _api.Helix.Webhooks.StreamUpDownAsync(
+                _config["WebhookUrl"], WebhookCallMode.Subscribe, _channelId, signingSecret: _config["WebhookSigningSecret"]);
 
             await Task.Delay(-1);
         }
