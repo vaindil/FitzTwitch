@@ -43,6 +43,8 @@ namespace FitzTwitch
 
         private readonly Random _random = new Random();
 
+        private Timer _webhookRefreshTimer;
+
         public const string _channelId = "23155607";
 
         public async Task RealMainAsync()
@@ -71,10 +73,15 @@ namespace FitzTwitch
 
             _client.Connect();
 
-            await _api.Helix.Webhooks.StreamUpDownAsync(
-                _config["WebhookUrl"], WebhookCallMode.Subscribe, _channelId, signingSecret: _config["WebhookSigningSecret"]);
+            _webhookRefreshTimer = new Timer(async _ => await SubscribeToWebhookAsync(), null, TimeSpan.Zero, TimeSpan.FromDays(5));
 
             await Task.Delay(-1);
+        }
+
+        private async Task SubscribeToWebhookAsync()
+        {
+            await _api.Helix.Webhooks.StreamUpDownAsync(
+                _config["WebhookUrl"], WebhookCallMode.Subscribe, _channelId, signingSecret: _config["WebhookSigningSecret"]);
         }
 
         private void SpamCatcher(object sender, OnMessageReceivedArgs e)
