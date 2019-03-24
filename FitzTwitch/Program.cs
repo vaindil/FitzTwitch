@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -64,7 +65,6 @@ namespace FitzTwitch
             _client.Initialize(credentials, "fitzyhere", '!');
 
             _client.OnChatCommandReceived += CommandReceived;
-            _client.OnMessageReceived += SpamCatcher;
             _client.OnMessageReceived += PollCounter;
 
             _client.OnConnectionError += ConnectionError;
@@ -79,18 +79,23 @@ namespace FitzTwitch
 
         private async Task SubscribeToWebhookAsync()
         {
-            await _api.Helix.Webhooks.StreamUpDownAsync(
-                _config["WebhookUrl"],
-                WebhookCallMode.Subscribe,
-                _channelId,
-                signingSecret: _config["WebhookSigningSecret"],
-                accessToken: _config["AccessToken"]);
-        }
+            var request = new HttpRequestMessage(HttpMethod.Post, "https://api.twitch.tv/helix/webhooks/hub");
+            var requestBody = new WebhookRequestBody
+            {
+                Callback = _config["WebhookUrl"],
+                Mode = "subscribe",
+                Topic = "https://api.twitch.tv/helix/streams?user_id=425465450",
+                LeaseSeconds = 864000,
+                Secret = _config["Secret"]
+            };
 
-        private void SpamCatcher(object sender, OnMessageReceivedArgs e)
-        {
-            if (e.ChatMessage.Message.IndexOf("n i g g e r", StringComparison.InvariantCultureIgnoreCase) >= 0)
-                _client.BanUser(e.ChatMessage.Channel, e.ChatMessage.Username, "Racist spam");
+            request.Content = new StringContent(JsonConvert.SerializeObject(requestBody));
+            request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            request.Headers.Add("Client-ID", _config["ClientId"]);
+
+            await _httpClient.SendAsync(request);
+
+            Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: Webhook subscribed");
         }
 
         private void PollCounter(object sender, OnMessageReceivedArgs e)

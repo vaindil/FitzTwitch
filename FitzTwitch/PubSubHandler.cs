@@ -6,7 +6,6 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using TwitchLib.Api;
-using TwitchLib.Client;
 using TwitchLib.PubSub;
 using TwitchLib.PubSub.Events;
 
