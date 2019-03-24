@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
     <LangVersion>latest</LangVersion>
     <CodeAnalysisRuleSet>..\FitzTwitch.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
@@ -12,7 +12,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.2.0" />
     <PackageReference Include="TwitchLib.Api" Version="3.0.6-CI-20190317-060258" />
     <PackageReference Include="TwitchLib.Client" Version="3.0.6-CI-20190317-060125" />
-    <PackageReference Include="TwitchLib.PubSub" Version="3.0.6-CI-20190317-060029" />
+    <PackageReference Include="TwitchLib.PubSub" Version="3.0.6-CI-20190321-060030" />
   </ItemGroup>
 
   <ItemGroup>

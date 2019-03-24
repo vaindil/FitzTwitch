@@ -28,6 +28,7 @@ namespace FitzTwitch
 
 #pragma warning disable IDE0052 // Remove unread private members
         private PubSubHandler _pubSubHandler;
+        private Timer _webhookRefreshTimer;
 #pragma warning restore IDE0052 // Remove unread private members
 
         private readonly TwitchClient _client = new TwitchClient();
@@ -42,8 +43,6 @@ namespace FitzTwitch
         private readonly ConcurrentBag<PollAnswer> _pollResults = new ConcurrentBag<PollAnswer>();
 
         private readonly Random _random = new Random();
-
-        private Timer _webhookRefreshTimer;
 
         public const string _channelId = "23155607";
 
@@ -81,7 +80,11 @@ namespace FitzTwitch
         private async Task SubscribeToWebhookAsync()
         {
             await _api.Helix.Webhooks.StreamUpDownAsync(
-                _config["WebhookUrl"], WebhookCallMode.Subscribe, _channelId, signingSecret: _config["WebhookSigningSecret"]);
+                _config["WebhookUrl"],
+                WebhookCallMode.Subscribe,
+                _channelId,
+                signingSecret: _config["WebhookSigningSecret"],
+                accessToken: _config["AccessToken"]);
         }
 
         private void SpamCatcher(object sender, OnMessageReceivedArgs e)
