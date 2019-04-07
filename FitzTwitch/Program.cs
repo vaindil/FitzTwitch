@@ -84,7 +84,7 @@ namespace FitzTwitch
             {
                 Callback = _config["WebhookUrl"],
                 Mode = "subscribe",
-                Topic = "https://api.twitch.tv/helix/streams?user_id=425465450",
+                Topic = $"https://api.twitch.tv/helix/streams?user_id={_channelId}",
                 LeaseSeconds = 864000,
                 Secret = _config["Secret"]
             };
