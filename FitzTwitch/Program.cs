@@ -86,7 +86,7 @@ namespace FitzTwitch
                 Mode = "subscribe",
                 Topic = $"https://api.twitch.tv/helix/streams?user_id={_channelId}",
                 LeaseSeconds = 864000,
-                Secret = _config["Secret"]
+                Secret = _config["WebhookSigningSecret"]
             };
 
             request.Content = new StringContent(JsonConvert.SerializeObject(requestBody));
