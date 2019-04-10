@@ -46,10 +46,12 @@ namespace FitzTwitch
         {
             _pubSub.ListenToChatModeratorActions(_config["UserId"], Program._channelId);
             _pubSub.SendTopics(_config["AccessToken"]);
+            Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: PubSub topics sent");
         }
 
         private void PubSubClosed(object sender, EventArgs e)
         {
+            Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: PubSub closed");
             _pubSub.Connect();
         }
 
@@ -62,6 +64,8 @@ namespace FitzTwitch
 
         private async void OnBan(object sender, OnBanArgs e)
         {
+            Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: User banned");
+
             await SendActionAsync(new ActionTaken
             {
                 ModUsername = e.BannedBy,
@@ -74,6 +78,8 @@ namespace FitzTwitch
 
         private async void OnTimeout(object sender, OnTimeoutArgs e)
         {
+            Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: User timed out");
+
             await SendActionAsync(new ActionTaken
             {
                 ModUsername = e.TimedoutBy,
@@ -86,6 +92,8 @@ namespace FitzTwitch
 
         private async void OnUnban(object sender, OnUnbanArgs e)
         {
+            Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: User unbanned");
+
             var unbanned = await _api.Helix.Users.GetUsersAsync(ids: new List<string> { e.UnbannedUserId });
             await SendActionAsync(new ActionTaken
             {
@@ -99,6 +107,8 @@ namespace FitzTwitch
 
         private async void OnUntimeout(object sender, OnUntimeoutArgs e)
         {
+            Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: User un-timed out");
+
             var untimedout = await _api.Helix.Users.GetUsersAsync(ids: new List<string> { e.UntimeoutedUserId });
             await SendActionAsync(new ActionTaken
             {
@@ -112,6 +122,8 @@ namespace FitzTwitch
 
         private async void OnMessageDeleted(object sender, OnMessageDeletedArgs e)
         {
+            Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: Message deleted");
+
             await SendActionAsync(new ActionTaken
             {
                 ModUsername = e.DeletedBy,
@@ -135,6 +147,8 @@ namespace FitzTwitch
             request.Headers.Authorization = new AuthenticationHeaderValue(_config["FitzyApiKey"]);
 
             await _httpClient.SendAsync(request);
+
+            Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: Action sent to API");
         }
 
         private class Moderator
