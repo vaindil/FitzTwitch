@@ -39,6 +39,11 @@ namespace FitzTwitch
             _pubSub.OnUnban += OnUnban;
             _pubSub.OnUntimeout += OnUntimeout;
 
+            if (bool.Parse(_config["LogAllPubSubMessages"]))
+            {
+                _pubSub.OnLog += OnLog;
+            }
+
             _pubSub.Connect();
         }
 
@@ -60,6 +65,11 @@ namespace FitzTwitch
             Console.Error.WriteLine($"PubSub error: {e.Exception.Message}");
 
             _pubSub.Connect();
+        }
+
+        private void OnLog(object sender, OnLogArgs e)
+        {
+            Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: PubSub message received: {e.Data}");
         }
 
         private async void OnBan(object sender, OnBanArgs e)
