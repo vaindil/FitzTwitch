@@ -39,17 +39,24 @@ namespace FitzTwitch
             _pubSub.OnUnban += OnUnban;
             _pubSub.OnUntimeout += OnUntimeout;
 
+            if (bool.Parse(_config["LogAllPubSubMessages"]))
+            {
+                _pubSub.OnLog += OnLog;
+            }
+
             _pubSub.Connect();
         }
 
         private void PubSubConnected(object sender, EventArgs e)
         {
-            _pubSub.ListenToChatModeratorActions(_config["UserId"], Program._channelId);
+            _pubSub.ListenToChatModeratorActions(_config["BotUserId"], Program._channelId);
             _pubSub.SendTopics(_config["AccessToken"]);
+            Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: PubSub topics sent");
         }
 
         private void PubSubClosed(object sender, EventArgs e)
         {
+            Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: PubSub closed");
             _pubSub.Connect();
         }
 
@@ -58,6 +65,11 @@ namespace FitzTwitch
             Console.Error.WriteLine($"PubSub error: {e.Exception.Message}");
 
             _pubSub.Connect();
+        }
+
+        private void OnLog(object sender, OnLogArgs e)
+        {
+            Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: PubSub message received: {e.Data}");
         }
 
         private async void OnBan(object sender, OnBanArgs e)
@@ -135,6 +147,8 @@ namespace FitzTwitch
             request.Headers.Authorization = new AuthenticationHeaderValue(_config["FitzyApiKey"]);
 
             await _httpClient.SendAsync(request);
+
+            Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: Action sent to API");
         }
 
         private class Moderator

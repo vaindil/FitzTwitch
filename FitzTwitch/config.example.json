@@ -7,5 +7,6 @@
   "WinLossApiBaseUrl": "",
   "ActionsApiBaseUrl": "",
   "WebhookUrl": "",
-  "WebhookSigningSecret": ""
+  "WebhookSigningSecret": "",
+  "LogAllPubSubTopics": "false"
 }
