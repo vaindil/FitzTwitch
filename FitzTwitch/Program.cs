@@ -277,7 +277,7 @@ namespace FitzTwitch
 
         private void GintokiCommand(string message)
         {
-            message = message.TrimStart('!', '.', '+');
+            message = message.TrimStart('/', '!', '.', '+');
 
             var outMsg = new StringBuilder();
             foreach (var l in message)
