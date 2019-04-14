@@ -110,11 +110,11 @@ namespace FitzTwitch
         {
             var displayName = e.Command.ChatMessage.DisplayName;
 
-            if (string.Equals(e.Command.CommandText, "gin", StringComparison.OrdinalIgnoreCase))
-            {
-                GintokiCommand(e.Command.ArgumentsAsString);
-                return;
-            }
+            //if (string.Equals(e.Command.CommandText, "gin", StringComparison.OrdinalIgnoreCase))
+            //{
+            //    GintokiCommand(e.Command.ArgumentsAsString);
+            //    return;
+            //}
 
             if (!e.Command.ChatMessage.IsBroadcaster && !e.Command.ChatMessage.IsModerator)
                 return;
