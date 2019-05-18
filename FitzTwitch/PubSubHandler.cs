@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Threading;
 using System.Threading.Tasks;
 using TwitchLib.Api;
 using TwitchLib.PubSub;
@@ -14,19 +15,15 @@ namespace FitzTwitch
     public class PubSubHandler
     {
         private readonly IConfiguration _config;
-
-        private readonly TwitchAPI _api;
         private readonly TwitchPubSub _pubSub;
-
         private readonly HttpClient _httpClient;
 
-        public PubSubHandler(IConfiguration config, TwitchAPI api, HttpClient httpClient)
+        private readonly Timer _reconnectTimer;
+
+        public PubSubHandler(IConfiguration config, HttpClient httpClient)
         {
             _config = config;
-
-            _api = api;
             _pubSub = new TwitchPubSub();
-
             _httpClient = httpClient;
 
             _pubSub.OnPubSubServiceConnected += PubSubConnected;
@@ -44,7 +41,23 @@ namespace FitzTwitch
                 _pubSub.OnLog += OnLog;
             }
 
+            _reconnectTimer = new Timer(_ => PubSubConnect(), null, TimeSpan.Zero, TimeSpan.FromHours(18));
+        }
+
+        private void PubSubConnect()
+        {
+            // will error if it's not connected, don't care
+            try
+            {
+                _pubSub.Disconnect();
+                LogToConsole("PubSub intentionally disconnected, about to reconnect");
+            }
+            catch
+            {
+            }
+
             _pubSub.Connect();
+            LogToConsole("PubSub reconnected");
         }
 
         private void PubSubConnected(object sender, EventArgs e)
@@ -57,13 +70,13 @@ namespace FitzTwitch
 
         private void PubSubClosed(object sender, EventArgs e)
         {
-            LogToConsole("PubSub closed");
+            LogToConsole("PubSub closed, reconnecting");
             _pubSub.Connect();
         }
 
         private void PubSubError(object sender, OnPubSubServiceErrorArgs e)
         {
-            LogToConsole($"PubSub error: {e.Exception.Message}");
+            LogToConsole($"PubSub error, reconnecting: {e.Exception.Message}");
 
             _pubSub.Connect();
         }
