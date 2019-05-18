@@ -1,0 +1,13 @@
+[Unit]
+Description=FitzTwitch
+After=network.target
+
+[Service]
+Type=simple
+User=fitztwitch
+WorkingDirectory=/home/fitztwitch/bot
+ExecStart=/usr/bin/dotnet /home/fitztwitch/bot/FitzTwitch.dll
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

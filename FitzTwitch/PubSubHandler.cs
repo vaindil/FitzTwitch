@@ -51,29 +51,32 @@ namespace FitzTwitch
         {
             _pubSub.ListenToChatModeratorActions(_config["BotUserId"], Program._channelId);
             _pubSub.SendTopics(_config["AccessToken"]);
-            Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: PubSub topics sent");
+
+            LogToConsole("PubSub topics sent");
         }
 
         private void PubSubClosed(object sender, EventArgs e)
         {
-            Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: PubSub closed");
+            LogToConsole("PubSub closed");
             _pubSub.Connect();
         }
 
         private void PubSubError(object sender, OnPubSubServiceErrorArgs e)
         {
-            Console.Error.WriteLine($"PubSub error: {e.Exception.Message}");
+            LogToConsole($"PubSub error: {e.Exception.Message}");
 
             _pubSub.Connect();
         }
 
         private void OnLog(object sender, OnLogArgs e)
         {
-            Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: PubSub message received: {e.Data}");
+            LogToConsole($"PubSub message received: {e.Data}");
         }
 
         private async void OnBan(object sender, OnBanArgs e)
         {
+            LogToConsole($"User {e.BannedUser} ({e.BannedUserId}) banned by {e.BannedBy} ({e.BannedByUserId})");
+
             await SendActionAsync(new ActionTaken
             {
                 ModUsername = e.BannedBy,
@@ -86,6 +89,8 @@ namespace FitzTwitch
 
         private async void OnTimeout(object sender, OnTimeoutArgs e)
         {
+            LogToConsole($"User {e.TimedoutUser} ({e.TimedoutUserId}) timed out by {e.TimedoutBy} ({e.TimedoutById})");
+
             await SendActionAsync(new ActionTaken
             {
                 ModUsername = e.TimedoutBy,
@@ -98,11 +103,12 @@ namespace FitzTwitch
 
         private async void OnUnban(object sender, OnUnbanArgs e)
         {
-            var unbanned = await _api.Helix.Users.GetUsersAsync(ids: new List<string> { e.UnbannedUserId });
+            LogToConsole($"User {e.UnbannedUser} ({e.UnbannedUserId}) unbanned by {e.UnbannedBy} ({e.UnbannedByUserId})");
+
             await SendActionAsync(new ActionTaken
             {
                 ModUsername = e.UnbannedBy,
-                UserUsername = unbanned.Users[0].Login,
+                UserUsername = e.UnbannedUser,
                 Action = "unban",
                 Duration = 0,
                 Reason = "(none)"
@@ -111,11 +117,13 @@ namespace FitzTwitch
 
         private async void OnUntimeout(object sender, OnUntimeoutArgs e)
         {
-            var untimedout = await _api.Helix.Users.GetUsersAsync(ids: new List<string> { e.UntimeoutedUserId });
+            LogToConsole($"User {e.UntimeoutedUser} ({e.UntimeoutedUserId}) untimed out by {e.UntimeoutedBy} " +
+                $"({e.UntimeoutedByUserId})");
+
             await SendActionAsync(new ActionTaken
             {
                 ModUsername = e.UntimeoutedBy,
-                UserUsername = untimedout.Users[0].Login,
+                UserUsername = e.UntimeoutedUser,
                 Action = "untimeout",
                 Duration = 0,
                 Reason = "(none)"
@@ -124,6 +132,9 @@ namespace FitzTwitch
 
         private async void OnMessageDeleted(object sender, OnMessageDeletedArgs e)
         {
+            LogToConsole($"User {e.TargetUser} ({e.TargetUserId}) had message deleted by {e.DeletedBy} " +
+                $"({e.DeletedByUserId}): {e.Message}");
+
             await SendActionAsync(new ActionTaken
             {
                 ModUsername = e.DeletedBy,
@@ -148,7 +159,13 @@ namespace FitzTwitch
 
             await _httpClient.SendAsync(request);
 
-            Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: Action sent to API");
+            LogToConsole($"Action sent to API: {action.Action} | {action.UserUsername} by {action.ModUsername} | " +
+                $"duration: {action.Duration}");
+        }
+
+        private void LogToConsole(string message)
+        {
+            Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: {message}");
         }
 
         private class Moderator
