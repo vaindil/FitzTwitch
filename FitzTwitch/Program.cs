@@ -57,7 +57,7 @@ namespace FitzTwitch
 
             var credentials = new ConnectionCredentials(_config["Username"], _config["AccessToken"]);
 
-            _pubSubHandler = new PubSubHandler(_config, _api, _httpClient);
+            _pubSubHandler = new PubSubHandler(_config, _httpClient);
 
             _api.Settings.ClientId = _config["ClientId"];
             _api.Settings.AccessToken = _config["AccessToken"];
