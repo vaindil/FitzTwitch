@@ -3,7 +3,7 @@
   "BotUserId": "",
   "AccessToken": "",
   "ClientId": "",
-  "WinLossApiKey": "",
+  "FitzyApiKey": "",
   "WinLossApiBaseUrl": "",
   "ActionsApiBaseUrl": "",
   "WebhookUrl": "",
