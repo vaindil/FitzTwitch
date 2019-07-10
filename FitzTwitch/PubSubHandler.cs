@@ -50,14 +50,14 @@ namespace FitzTwitch
             try
             {
                 _pubSub.Disconnect();
-                LogToConsole("PubSub intentionally disconnected, about to reconnect");
+                Utils.LogToConsole("PubSub intentionally disconnected, about to reconnect");
             }
             catch
             {
             }
 
             _pubSub.Connect();
-            LogToConsole("PubSub reconnected");
+            Utils.LogToConsole("PubSub reconnected");
         }
 
         private void PubSubConnected(object sender, EventArgs e)
@@ -65,30 +65,30 @@ namespace FitzTwitch
             _pubSub.ListenToChatModeratorActions(_config["BotUserId"], Program._channelId);
             _pubSub.SendTopics(_config["AccessToken"]);
 
-            LogToConsole("PubSub topics sent");
+            Utils.LogToConsole("PubSub topics sent");
         }
 
         private void PubSubClosed(object sender, EventArgs e)
         {
-            LogToConsole("PubSub closed, reconnecting");
+            Utils.LogToConsole("PubSub closed, reconnecting");
             _pubSub.Connect();
         }
 
         private void PubSubError(object sender, OnPubSubServiceErrorArgs e)
         {
-            LogToConsole($"PubSub error, reconnecting: {e.Exception.Message}");
+            Utils.LogToConsole($"PubSub error, reconnecting: {e.Exception.Message}");
 
             _pubSub.Connect();
         }
 
         private void OnLog(object sender, OnLogArgs e)
         {
-            LogToConsole($"PubSub message received: {e.Data}");
+            Utils.LogToConsole($"PubSub message received: {e.Data}");
         }
 
         private async void OnBan(object sender, OnBanArgs e)
         {
-            LogToConsole($"User {e.BannedUser} ({e.BannedUserId}) banned by {e.BannedBy} ({e.BannedByUserId})");
+            Utils.LogToConsole($"User {e.BannedUser} ({e.BannedUserId}) banned by {e.BannedBy} ({e.BannedByUserId})");
 
             await SendActionAsync(new ActionTaken
             {
@@ -102,7 +102,7 @@ namespace FitzTwitch
 
         private async void OnTimeout(object sender, OnTimeoutArgs e)
         {
-            LogToConsole($"User {e.TimedoutUser} ({e.TimedoutUserId}) timed out by {e.TimedoutBy} ({e.TimedoutById})");
+            Utils.LogToConsole($"User {e.TimedoutUser} ({e.TimedoutUserId}) timed out by {e.TimedoutBy} ({e.TimedoutById})");
 
             await SendActionAsync(new ActionTaken
             {
@@ -116,7 +116,7 @@ namespace FitzTwitch
 
         private async void OnUnban(object sender, OnUnbanArgs e)
         {
-            LogToConsole($"User {e.UnbannedUser} ({e.UnbannedUserId}) unbanned by {e.UnbannedBy} ({e.UnbannedByUserId})");
+            Utils.LogToConsole($"User {e.UnbannedUser} ({e.UnbannedUserId}) unbanned by {e.UnbannedBy} ({e.UnbannedByUserId})");
 
             await SendActionAsync(new ActionTaken
             {
@@ -130,7 +130,7 @@ namespace FitzTwitch
 
         private async void OnUntimeout(object sender, OnUntimeoutArgs e)
         {
-            LogToConsole($"User {e.UntimeoutedUser} ({e.UntimeoutedUserId}) untimed out by {e.UntimeoutedBy} " +
+            Utils.LogToConsole($"User {e.UntimeoutedUser} ({e.UntimeoutedUserId}) untimed out by {e.UntimeoutedBy} " +
                 $"({e.UntimeoutedByUserId})");
 
             await SendActionAsync(new ActionTaken
@@ -145,7 +145,7 @@ namespace FitzTwitch
 
         private async void OnMessageDeleted(object sender, OnMessageDeletedArgs e)
         {
-            LogToConsole($"User {e.TargetUser} ({e.TargetUserId}) had message deleted by {e.DeletedBy} " +
+            Utils.LogToConsole($"User {e.TargetUser} ({e.TargetUserId}) had message deleted by {e.DeletedBy} " +
                 $"({e.DeletedByUserId}): {e.Message}");
 
             await SendActionAsync(new ActionTaken
@@ -172,13 +172,8 @@ namespace FitzTwitch
 
             await _httpClient.SendAsync(request);
 
-            LogToConsole($"Action sent to API: {action.Action} | {action.UserUsername} by {action.ModUsername} | " +
+            Utils.LogToConsole($"Action sent to API: {action.Action} | {action.UserUsername} by {action.ModUsername} | " +
                 $"duration: {action.Duration}");
-        }
-
-        private void LogToConsole(string message)
-        {
-            Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: {message}");
         }
 
         private class Moderator

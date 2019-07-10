@@ -11,10 +11,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using TwitchLib.Api;
-using TwitchLib.Api.Core.Enums;
 using TwitchLib.Client;
 using TwitchLib.Client.Events;
-using TwitchLib.Client.Extensions;
 using TwitchLib.Client.Models;
 using TwitchLib.Communication.Events;
 
@@ -135,6 +133,7 @@ namespace FitzTwitch
                 case "w":
                 case "win":
                 case "wins":
+                    Utils.LogToConsole($"Wins updated by {e.Command.ChatMessage.DisplayName}: {wldArg}");
                     await UpdateSingleAsync(NumberToUpdate.Wins, wldArg, displayName);
                     break;
 
@@ -145,6 +144,7 @@ namespace FitzTwitch
                 case "k":
                 case "kill":
                 case "kills":
+                    Utils.LogToConsole($"Losses updated by {e.Command.ChatMessage.DisplayName}: {wldArg}");
                     await UpdateSingleAsync(NumberToUpdate.Losses, wldArg, displayName);
                     break;
 
@@ -153,6 +153,7 @@ namespace FitzTwitch
                 case "draws":
                 case "death":
                 case "deaths":
+                    Utils.LogToConsole($"Draws updated by {e.Command.ChatMessage.DisplayName}: {wldArg}");
                     await UpdateSingleAsync(NumberToUpdate.Draws, wldArg, displayName);
                     break;
 
@@ -160,11 +161,13 @@ namespace FitzTwitch
                 case "c":
                 case "reset":
                 case "r":
+                    Utils.LogToConsole($"Record cleared by {e.Command.ChatMessage.DisplayName}: {wldArg}");
                     await UpdateSingleAsync(NumberToUpdate.Clear, "0", displayName);
                     break;
 
                 case "all":
                 case "wld":
+                    Utils.LogToConsole($"All record args updated by {e.Command.ChatMessage.DisplayName}");
                     await CheckCommandAndUpdateAllAsync(e.Command);
                     break;
 
@@ -268,10 +271,15 @@ namespace FitzTwitch
             if (type != NumberToUpdate.Clear)
                 url += num;
 
+            Utils.LogToConsole($"Sending record API call to {url}");
+
             var request = new HttpRequestMessage(HttpMethod.Put, url);
             request.Headers.Authorization = new AuthenticationHeaderValue(_config["FitzyApiKey"]);
 
             var response = await _httpClient.SendAsync(request);
+
+            // timer ensures there won't be multiple calls made at once, this log line is okay
+            Utils.LogToConsole($"Previous API call succeeded: {response.IsSuccessStatusCode}");
             return response.IsSuccessStatusCode;
         }
 
@@ -392,13 +400,13 @@ namespace FitzTwitch
 
         private void ConnectionError(object sender, OnConnectionErrorArgs e)
         {
-            Console.Error.WriteLine("Connection error: " + e.Error.Message);
+            Utils.LogToConsole("Connection error: " + e.Error.Message);
             Environment.Exit(1);
         }
 
         private void Disconnected(object sender, OnDisconnectedEventArgs e)
         {
-            Console.Error.WriteLine("Disconnected");
+            Utils.LogToConsole("Disconnected");
             Environment.Exit(1);
         }
 

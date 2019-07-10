@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System;
+using System.Text.RegularExpressions;
 using TwitchLib.Client;
 using TwitchLib.Client.Models;
 
@@ -24,6 +25,11 @@ namespace FitzTwitch
                 return cmd.ArgumentsAsList[0];
 
             return "-1";
+        }
+
+        public static void LogToConsole(string message)
+        {
+            Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: {message}");
         }
     }
 }
