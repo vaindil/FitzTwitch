@@ -10,9 +10,9 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.2.0" />
-    <PackageReference Include="TwitchLib.Api" Version="3.0.6-CI-20190707-175305" />
-    <PackageReference Include="TwitchLib.Client" Version="3.0.6-CI-20190707-175300" />
-    <PackageReference Include="TwitchLib.PubSub" Version="3.0.6-CI-20190707-175203" />
+    <PackageReference Include="TwitchLib.Api" Version="3.0.6-CI-20190905-060235" />
+    <PackageReference Include="TwitchLib.Client" Version="3.0.6-CI-20190905-060208" />
+    <PackageReference Include="TwitchLib.PubSub" Version="3.0.6-CI-20190905-060105" />
   </ItemGroup>
 
   <ItemGroup>

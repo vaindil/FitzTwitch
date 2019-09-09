@@ -65,6 +65,7 @@ namespace FitzTwitch
             _client.OnChatCommandReceived += CommandReceived;
             _client.OnMessageReceived += PollCounter;
 
+            _client.OnConnected += Connected;
             _client.OnConnectionError += ConnectionError;
             _client.OnDisconnected += Disconnected;
 
@@ -398,16 +399,21 @@ namespace FitzTwitch
             _pollResults.Clear();
         }
 
+        private void Connected(object sender, OnConnectedArgs e)
+        {
+            Utils.LogToConsole("Chat connected");
+        }
+
         private void ConnectionError(object sender, OnConnectionErrorArgs e)
         {
-            Utils.LogToConsole("Connection error: " + e.Error.Message);
-            Environment.Exit(1);
+            Utils.LogToConsole($"Chat connection error, reconnecting: {e.Error?.Message}");
+            _client.Connect();
         }
 
         private void Disconnected(object sender, OnDisconnectedEventArgs e)
         {
-            Utils.LogToConsole("Disconnected");
-            Environment.Exit(1);
+            Utils.LogToConsole("Chat disconnected, reconnecting");
+            _client.Connect();
         }
 
         private void ResetWinLossAllowed(object _)
