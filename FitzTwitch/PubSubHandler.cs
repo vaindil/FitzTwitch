@@ -1,12 +1,10 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
-using TwitchLib.Api;
 using TwitchLib.PubSub;
 using TwitchLib.PubSub.Events;
 
@@ -18,7 +16,9 @@ namespace FitzTwitch
         private readonly TwitchPubSub _pubSub;
         private readonly HttpClient _httpClient;
 
+#pragma warning disable IDE0052 // Remove unread private members
         private readonly Timer _reconnectTimer;
+#pragma warning restore IDE0052 // Remove unread private members
 
         public PubSubHandler(IConfiguration config, HttpClient httpClient)
         {

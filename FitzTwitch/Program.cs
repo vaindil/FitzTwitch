@@ -41,8 +41,6 @@ namespace FitzTwitch
         private int _numPollAnswers;
         private readonly ConcurrentBag<PollAnswer> _pollResults = new ConcurrentBag<PollAnswer>();
 
-        private readonly Random _random = new Random();
-
         public const string _channelId = "23155607";
 
         public async Task RealMainAsync()
@@ -282,35 +280,6 @@ namespace FitzTwitch
             // timer ensures there won't be multiple calls made at once, this log line is okay
             Utils.LogToConsole($"Previous API call succeeded: {response.IsSuccessStatusCode}");
             return response.IsSuccessStatusCode;
-        }
-
-        private void GintokiCommand(string message)
-        {
-            message = message.TrimStart('/', '!', '.', '+');
-
-            var outMsg = new StringBuilder();
-            foreach (var l in message)
-            {
-                if (!char.IsLetter(l))
-                {
-                    outMsg.Append(l);
-                    continue;
-                }
-
-                var final = l;
-
-                if (_random.Next(0, 10) >= 6)
-                {
-                    if (char.IsUpper(l))
-                        final = char.ToLower(l);
-                    else
-                        final = char.ToUpper(l);
-                }
-
-                outMsg.Append(final);
-            }
-
-            _client.SendMessage("fitzyhere", outMsg.ToString());
         }
 
         private async Task SendRefreshCallAsync(string displayName)
