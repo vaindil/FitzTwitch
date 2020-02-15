@@ -38,9 +38,6 @@ namespace FitzTwitch
         private Timer _winLossTimer;
         private bool _winLossAllowed = true;
 
-        private int _numPollAnswers;
-        private readonly ConcurrentBag<PollAnswer> _pollResults = new ConcurrentBag<PollAnswer>();
-
         public const string _channelId = "23155607";
 
         public async Task RealMainAsync()
@@ -58,10 +55,9 @@ namespace FitzTwitch
             _api.Settings.ClientId = _config["ClientId"];
             _api.Settings.AccessToken = _config["AccessToken"];
 
-            _client.Initialize(credentials, "fitzyhere", '!');
+            _client.Initialize(credentials, chatCommandIdentifier: '!');
 
             _client.OnChatCommandReceived += CommandReceived;
-            _client.OnMessageReceived += PollCounter;
 
             _client.OnConnected += Connected;
             _client.OnConnectionError += ConnectionError;
@@ -93,14 +89,6 @@ namespace FitzTwitch
             await _httpClient.SendAsync(request);
 
             Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: Webhook subscribed");
-        }
-
-        private void PollCounter(object sender, OnMessageReceivedArgs e)
-        {
-            if (_numPollAnswers != 0 && int.TryParse(e.ChatMessage.Message, out var ans) && ans >= 1 && ans <= _numPollAnswers)
-            {
-                _pollResults.Add(new PollAnswer(e.ChatMessage.UserId, ans));
-            }
         }
 
         private async void CommandReceived(object sender, OnChatCommandReceivedArgs e)
@@ -168,16 +156,6 @@ namespace FitzTwitch
                 case "wld":
                     Utils.LogToConsole($"All record args updated by {e.Command.ChatMessage.DisplayName}");
                     await CheckCommandAndUpdateAllAsync(e.Command);
-                    break;
-
-                case "startpoll":
-                case "pollstart":
-                    StartPoll(e.Command);
-                    break;
-
-                case "endpoll":
-                case "pollend":
-                    EndPoll(e.Command.ChatMessage.DisplayName);
                     break;
             }
         }
@@ -294,83 +272,11 @@ namespace FitzTwitch
                 _client.SendMessageAt(displayName, "Something went wrong. Blame that one guy.");
         }
 
-        private void StartPoll(ChatCommand cmd)
-        {
-            var displayName = cmd.ChatMessage.DisplayName;
-
-            if (_numPollAnswers != 0)
-            {
-                _client.SendMessageAt(displayName, "You can't start a new poll when one is already open, you nerd.");
-                return;
-            }
-
-            if (cmd.ArgumentsAsList.Count < 1)
-            {
-                _client.SendMessageAt(displayName, "You must provide the number of possible answers, you nerd.");
-                return;
-            }
-
-            if (!int.TryParse(cmd.ArgumentsAsList[0], out var numOfAnswers))
-            {
-                _client.SendMessageAt(displayName, "You didn't provide a valid number of possible answers, you nerd.");
-                return;
-            }
-
-            if (numOfAnswers < 2)
-            {
-                _client.SendMessageAt(displayName, "Poll must have two or more possible answers, you nerd.");
-                return;
-            }
-
-            _numPollAnswers = numOfAnswers;
-            _pollResults.Clear();
-
-            _client.SendMessageAt(displayName, "Poll is now open, you nerd.");
-        }
-
-        private void EndPoll(string displayName)
-        {
-            if (_numPollAnswers == 0)
-            {
-                _client.SendMessageAt(displayName, "You can't end a nonexistent poll, you nerd.");
-                return;
-            }
-
-            var numAnswers = _numPollAnswers;
-            _numPollAnswers = 0;
-
-            var userIds = new List<string>();
-            var results = new List<int>();
-
-            var sb = new StringBuilder("Results: ");
-
-            while (_pollResults.TryTake(out var result))
-            {
-                if (userIds.Contains(result.UserId))
-                    continue;
-
-                userIds.Add(result.UserId);
-                results.Add(result.Answer);
-            }
-
-            for (var i = 1; i <= numAnswers; i++)
-            {
-                if (i != 1)
-                    sb.Append(" | ");
-
-                sb.Append(i);
-                sb.Append(": ");
-                sb.Append(results.Count(x => x == i));
-            }
-
-            _client.SendMessage("fitzyhere", sb.ToString());
-
-            _pollResults.Clear();
-        }
-
         private void Connected(object sender, OnConnectedArgs e)
         {
             Utils.LogToConsole("Chat connected");
+            _client.JoinChannel("fitzyhere");
+            Utils.LogToConsole("Joined channel fitzyhere");
         }
 
         private void ConnectionError(object sender, OnConnectionErrorArgs e)

@@ -8,5 +8,5 @@
   "ActionsApiBaseUrl": "",
   "WebhookUrl": "",
   "WebhookSigningSecret": "",
-  "LogAllPubSubTopics": "false"
+  "LogAllPubSubMessages": "false"
 }
