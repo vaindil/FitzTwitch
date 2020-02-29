@@ -8,5 +8,7 @@
   "ActionsApiBaseUrl": "",
   "WebhookUrl": "",
   "WebhookSigningSecret": "",
-  "LogAllPubSubMessages": "false"
+  "LogAllPubSubMessages": "false",
+  "DiscordWebhookUrl": "",
+  "DiscordWebhookUserPing": ""
 }

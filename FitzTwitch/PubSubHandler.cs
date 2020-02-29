@@ -29,6 +29,7 @@ namespace FitzTwitch
             _pubSub.OnPubSubServiceConnected += PubSubConnected;
             _pubSub.OnPubSubServiceClosed += PubSubClosed;
             _pubSub.OnPubSubServiceError += PubSubError;
+            _pubSub.OnListenResponse += OnListenResponse;
 
             _pubSub.OnBan += OnBan;
             _pubSub.OnTimeout += OnTimeout;
@@ -84,6 +85,14 @@ namespace FitzTwitch
         private void OnLog(object sender, OnLogArgs e)
         {
             Utils.LogToConsole($"PubSub message received: {e.Data}");
+        }
+
+        private async void OnListenResponse(object sender, OnListenResponseArgs e)
+        {
+            Utils.LogToConsole($"Listen response | success: {e.Successful} | topic: {e.Topic} | response: {e.Response.Error}");
+
+            if (!e.Successful)
+                await Utils.SendDiscordErrorWebhookAsync($"{_config["DiscordWebhookUserPing"]} Error in OnListenResponse", _config["DiscordWebhookUrl"]);
         }
 
         private async void OnBan(object sender, OnBanArgs e)
@@ -170,10 +179,18 @@ namespace FitzTwitch
             request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             request.Headers.Authorization = new AuthenticationHeaderValue(_config["FitzyApiKey"]);
 
-            await _httpClient.SendAsync(request);
+            var response = await _httpClient.SendAsync(request);
 
             Utils.LogToConsole($"Action sent to API: {action.Action} | {action.UserUsername} by {action.ModUsername} | " +
                 $"duration: {action.Duration}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                Utils.LogToConsole($"API error | status: {response.StatusCode} | body: {body}");
+
+                await Utils.SendDiscordErrorWebhookAsync($"{_config["DiscordWebhookUserPing"]} Error sending action to API", _config["DiscordWebhookUrl"]);
+            }
         }
 
         private class Moderator
