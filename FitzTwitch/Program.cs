@@ -51,6 +51,9 @@ namespace FitzTwitch
                 .AddJsonFile("config.json")
                 .Build();
 
+            AppDomain.CurrentDomain.UnhandledException += async (_, e) =>
+                await Utils.SendDiscordErrorWebhookAsync($"{_config["DiscordWebhookUserPing"]} Unhandled exception occurred in Twitch bot", _config["DiscordWebhookUrl"]);
+
             var credentials = new ConnectionCredentials(_config["Username"], _config["AccessToken"]);
 
             _pubSubHandler = new PubSubHandler(_config, _httpClient);
