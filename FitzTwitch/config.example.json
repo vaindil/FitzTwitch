@@ -3,6 +3,7 @@
   "BotUserId": "",
   "AccessToken": "",
   "ClientId": "",
+  "ClientSecret": "",
   "FitzyApiKey": "",
   "WinLossApiBaseUrl": "",
   "ActionsApiBaseUrl": "",

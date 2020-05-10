@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json;
 using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using TwitchLib.PubSub;
@@ -174,7 +174,7 @@ namespace FitzTwitch
 
             var request = new HttpRequestMessage(HttpMethod.Post, _config["ActionsApiBaseUrl"])
             {
-                Content = new StringContent(JsonConvert.SerializeObject(action))
+                Content = new StringContent(JsonSerializer.Serialize(action))
             };
             request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             request.Headers.Authorization = new AuthenticationHeaderValue(_config["FitzyApiKey"]);

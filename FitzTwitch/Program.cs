@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -8,6 +7,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using TwitchLib.Api;
@@ -52,7 +52,9 @@ namespace FitzTwitch
                 .Build();
 
             AppDomain.CurrentDomain.UnhandledException += async (_, e) =>
-                await Utils.SendDiscordErrorWebhookAsync($"{_config["DiscordWebhookUserPing"]} Unhandled exception occurred in Twitch bot", _config["DiscordWebhookUrl"]);
+                await Utils.SendDiscordErrorWebhookAsync(
+                    $"{_config["DiscordWebhookUserPing"]} Unhandled exception occurred in Twitch bot",
+                    _config["DiscordWebhookUrl"]);
 
             var credentials = new ConnectionCredentials(_config["Username"], _config["AccessToken"]);
 
@@ -78,6 +80,8 @@ namespace FitzTwitch
 
         private async Task SubscribeToWebhookAsync()
         {
+            var token = await GetTwitchTokenAsync();
+
             var request = new HttpRequestMessage(HttpMethod.Post, "https://api.twitch.tv/helix/webhooks/hub");
             var requestBody = new WebhookRequestBody
             {
@@ -88,13 +92,23 @@ namespace FitzTwitch
                 Secret = _config["WebhookSigningSecret"]
             };
 
-            request.Content = new StringContent(JsonConvert.SerializeObject(requestBody));
+            request.Content = new StringContent(JsonSerializer.Serialize(requestBody));
             request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             request.Headers.Add("Client-ID", _config["ClientId"]);
+            request.Headers.Add("Authorization", $"OAuth {token}");
 
-            await _httpClient.SendAsync(request);
-
-            Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: Webhook subscribed");
+            var resp = await _httpClient.SendAsync(request);
+            if (resp.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff}: Webhook subscribed");
+            }
+            else
+            {
+                var body = await resp.Content.ReadAsStringAsync();
+                await Utils.SendDiscordErrorWebhookAsync($"{_config["DiscordWebhookUserPing"]}: " +
+                    "Error subbing to webhook", _config["DiscordWebhookUrl"]);
+                Utils.LogToConsole($"Error subbing to webhook: {body}");
+            }
         }
 
         private void PollCounter(object sender, OnMessageReceivedArgs e)
@@ -372,6 +386,26 @@ namespace FitzTwitch
             _client.SendMessage("fitzyhere", sb.ToString());
 
             _pollResults.Clear();
+        }
+
+        private async Task<string> GetTwitchTokenAsync()
+        {
+            var url = "https://id.twitch.tv/oauth2/token?grant_type=client_credentials";
+            url += $"&client_id={_config["ClientId"]}";
+            url += $"&client_secret={_config["ClientSecret"]}";
+
+            var response = await _httpClient.PostAsync(url, null);
+            var body = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                await Utils.SendDiscordErrorWebhookAsync($"{_config["DiscordWebhookUserPing"]}: " +
+                    "Error authenticating with Twitch", _config["DiscordWebhookUrl"]);
+                Utils.LogToConsole($"Error authenticating with Twitch: {body}");
+                throw new Exception();
+            }
+
+            var tokenResp = JsonSerializer.Deserialize<TwitchTokenResponse>(body);
+            return tokenResp.AccessToken;
         }
 
         private void Connected(object sender, OnConnectedArgs e)
