@@ -95,7 +95,7 @@ namespace FitzTwitch
             request.Content = new StringContent(JsonSerializer.Serialize(requestBody));
             request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             request.Headers.Add("Client-ID", _config["ClientId"]);
-            request.Headers.Add("Authorization", $"OAuth {token}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             var resp = await _httpClient.SendAsync(request);
             if (resp.IsSuccessStatusCode)
