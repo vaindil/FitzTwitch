@@ -73,7 +73,7 @@ namespace FitzTwitch
 
             _client.Connect();
 
-            _webhookRefreshTimer = new Timer(async _ => await SubscribeToWebhookAsync(), null, TimeSpan.Zero, TimeSpan.FromDays(5));
+            // _webhookRefreshTimer = new Timer(async _ => await SubscribeToWebhookAsync(), null, TimeSpan.Zero, TimeSpan.FromDays(5));
 
             await Task.Delay(-1);
         }
